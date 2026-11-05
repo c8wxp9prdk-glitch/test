@@ -36,6 +36,7 @@ function gameLoop(currentTime) {
     updatePlayer(deltaTime);
     updateWeapons(deltaTime);      // swap guns, fire new bullets
     updateProjectiles(deltaTime);  // move the bullets already flying
+    updateGunLab();                // highlight the equipped gun in the lab panel
 
     // 2. DRAW
     renderScene(ctx, SCREEN_WIDTH, SCREEN_HEIGHT);

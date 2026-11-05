@@ -4,34 +4,152 @@
     <meta charset="UTF-8">
     <title>Raycaster</title>
     <style>
-        /* Black page with the game screen centred in the middle */
+        /* Black page with the game (and the Gun Lab beside it) in the middle */
         body {
             margin: 0;
+            padding: 16px;
+            box-sizing: border-box;
             background: #000;
             color: #ccc;
             font-family: monospace;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
+        }
+
+        /* Game on the left, Gun Lab on the right. If the window is too
+           narrow for both, "wrap" moves the lab underneath instead. */
+        .layout {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 16px;
         }
 
         /* The canvas is drawn at a low resolution (old school!) and then
            stretched up to a bigger size. "pixelated" keeps the pixels crisp
            instead of blurry when stretched. */
         canvas {
+            display: block;
             width: 960px;
             height: 600px;
             image-rendering: pixelated;
             cursor: pointer;
         }
+
+        /* ---- Gun Lab panel ---- */
+        #gun-lab {
+            width: 300px;
+            max-height: 600px;     /* same height as the game screen... */
+            overflow-y: auto;      /* ...and scrolls if there's more */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #gun-lab > h1 {
+            margin: 0;
+            font-size: 16px;
+            color: #fc6;
+        }
+
+        .lab-hint {
+            margin: 0;
+            color: #888;
+        }
+
+        /* One card per gun */
+        .lab-card {
+            border: 1px solid #333;
+            background: #111;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        /* The gun in your hands gets a gold border, like the in-game HUD */
+        .lab-card.equipped {
+            border-color: #fc6;
+        }
+
+        .lab-card h2 {
+            margin: 0 0 4px;
+            font-size: 14px;
+            color: #fff;
+        }
+
+        .lab-card.equipped h2::after {
+            content: "  (equipped)";
+            color: #fc6;
+            font-weight: normal;
+        }
+
+        /* Label | slider | value, lined up in three columns */
+        .lab-row {
+            display: grid;
+            grid-template-columns: 64px 1fr 64px;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lab-row input[type="range"] {
+            width: 100%;
+            accent-color: #fc6;
+        }
+
+        .lab-value {
+            text-align: right;
+            color: #fff;
+        }
+
+        .lab-option {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .lab-option input {
+            accent-color: #fc6;
+        }
+
+        .lab-stats {
+            margin: 4px 0;
+            color: #8cf;
+            line-height: 1.4;
+        }
+
+        .lab-card button {
+            align-self: flex-start;
+            font: inherit;
+            background: #222;
+            color: #ccc;
+            border: 1px solid #444;
+            padding: 2px 8px;
+            cursor: pointer;
+        }
+
+        .lab-card button:hover {
+            background: #333;
+        }
     </style>
 </head>
 <body>
-    <!-- This is the "screen" we draw the game onto -->
-    <canvas id="screen" width="320" height="200"></canvas>
-    <p>Click the screen to play. WASD = move, Mouse = look, Click/hold = shoot, Q/E = swap gun, Esc = release mouse, M = toggle map</p>
+    <div class="layout">
+        <div>
+            <!-- This is the "screen" we draw the game onto -->
+            <canvas id="screen" width="320" height="200"></canvas>
+            <p>Click the screen to play. WASD = move, Mouse = look, Click/hold = shoot, Q/E = swap gun, Esc = release mouse, M = toggle map</p>
+        </div>
+
+        <!-- The Gun Lab: lab.js fills this with a card for each gun -->
+        <aside id="gun-lab">
+            <h1>GUN LAB</h1>
+            <p class="lab-hint">Press Esc to free the mouse, then drag the sliders. Changes apply to the next shot and are lost on reload.</p>
+        </aside>
+    </div>
 
     <!-- The order matters! Each file can use things defined in the files above it. -->
     <script src="js/map.js"></script>
@@ -40,6 +158,7 @@
     <script src="js/player.js"></script>
     <script src="js/projectiles.js"></script>
     <script src="js/weapons.js"></script>
+    <script src="js/lab.js"></script>
     <script src="js/renderer.js"></script>
     <script src="js/main.js"></script>
 </body>

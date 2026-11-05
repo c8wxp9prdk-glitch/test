@@ -310,6 +310,28 @@ function renderMiniMap(ctx) {
         }
     }
 
+    // Gun Lab: a circle showing how far the equipped gun's bullets fly.
+    // (Bullets start 0.3 m in front of the player, so add that on.)
+    if (lab.showRangeOnMap) {
+        const reach = (WEAPONS[currentWeapon].bullet.range + 0.3) * tileSize;
+
+        // A big range would draw outside the minimap, over the 3D view.
+        // "clip" says: only allow drawing inside this rectangle for now.
+        // save() / restore() switch the clip back off afterwards.
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(offset, offset, MAP_WIDTH * tileSize, MAP_HEIGHT * tileSize);
+        ctx.clip();
+
+        ctx.strokeStyle = "rgba(255, 200, 60, 0.7)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(offset + player.x * tileSize, offset + player.y * tileSize, reach, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
     // Projectiles as tiny dots (light blue while flying, orange on a hit)
     for (const p of projectiles) {
         ctx.fillStyle = p.state === "hit" ? "orange" : "#7cf";
