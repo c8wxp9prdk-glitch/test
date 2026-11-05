@@ -87,10 +87,10 @@
             font-weight: normal;
         }
 
-        /* Label | slider | value, lined up in three columns */
+        /* Label | slider | number box | unit, lined up in four columns */
         .lab-row {
             display: grid;
-            grid-template-columns: 64px 1fr 64px;
+            grid-template-columns: 64px 1fr 52px 24px;
             align-items: center;
             gap: 6px;
         }
@@ -100,9 +100,49 @@
             accent-color: #fc6;
         }
 
-        .lab-value {
-            text-align: right;
+        /* Name and number boxes share one look */
+        .lab-row input[type="text"],
+        .lab-row input[type="number"] {
+            font: inherit;
+            background: #222;
             color: #fff;
+            border: 1px solid #444;
+            padding: 2px 4px;
+            min-width: 0;          /* let it shrink to fit its column */
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        /* The name box stretches across the slider, number and unit columns */
+        .lab-row input.lab-name {
+            grid-column: span 3;
+        }
+
+        .lab-row input.lab-number {
+            text-align: right;
+            /* Hide the little up/down arrows - there's no room for them */
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+        .lab-row input.lab-number::-webkit-inner-spin-button,
+        .lab-row input.lab-number::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .lab-unit {
+            color: #888;
+        }
+
+        /* Reset and Delete sit side by side */
+        .lab-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        #gun-lab button.lab-delete {
+            color: #f88;
+            border-color: #633;
         }
 
         .lab-option {
@@ -121,7 +161,7 @@
             line-height: 1.4;
         }
 
-        .lab-card button {
+        #gun-lab button {
             align-self: flex-start;
             font: inherit;
             background: #222;
@@ -131,8 +171,16 @@
             cursor: pointer;
         }
 
-        .lab-card button:hover {
+        #gun-lab button:hover {
             background: #333;
+        }
+
+        /* The "+ Add new gun" button: full width, in the lab's gold */
+        #gun-lab button.lab-add {
+            align-self: stretch;
+            padding: 6px;
+            color: #fc6;
+            border-color: #fc6;
         }
     </style>
 </head>

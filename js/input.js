@@ -19,6 +19,15 @@ const input = {
 // "code" is the physical key (KeyW, KeyA...), so WASD still works
 // on keyboards with a different layout.
 document.addEventListener("keydown", function (event) {
+    // Typing in a text box (like a gun's name in the Gun Lab)?
+    // Then the keys are for the box, not the game - otherwise typing
+    // "Shotgun" would walk you around and swap guns!
+    // (Number boxes too: "e" is allowed in numbers, like 1e3 = 1000.)
+    if (event.target.tagName === "INPUT" &&
+        (event.target.type === "text" || event.target.type === "number")) {
+        return;
+    }
+
     input.keys[event.code] = true;
 
     if (event.code === "KeyM") {

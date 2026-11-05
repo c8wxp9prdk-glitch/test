@@ -342,13 +342,6 @@ function renderMiniMap(ctx) {
     const px = offset + player.x * tileSize;
     const py = offset + player.y * tileSize;
 
-    // A line showing which way the player is looking
-    ctx.strokeStyle = "yellow";
-    ctx.beginPath();
-    ctx.moveTo(px, py);
-    ctx.lineTo(px + Math.cos(player.angle) * 8, py + Math.sin(player.angle) * 8);
-    ctx.stroke();
-
     // The player as a small dot
     ctx.fillStyle = "yellow";
     ctx.fillRect(px - 1, py - 1, 2, 2);
