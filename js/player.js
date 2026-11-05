@@ -12,8 +12,12 @@ const player = {
     x: 2.5,            // position in map squares (2.5 = middle of square 2)
     y: 2.5,
     angle: 0,          // which way we are facing (radians)
+    pitch: 0,          // looking up/down: how many pixels the horizon is
+                       // shifted (positive = looking up, negative = down)
+    maxPitch: 100,     // furthest you can look up or down (in pixels)
     moveSpeed: 3.0,    // metres per second
     turnSpeed: 0.003,  // radians turned per pixel of mouse movement
+    lookSpeed: 0.5,    // horizon pixels moved per pixel of mouse movement
     radius: 0.2,       // how "fat" the player is, so we don't touch walls
 };
 
@@ -22,7 +26,18 @@ const player = {
 // the game run at the same speed on fast and slow computers.
 function updatePlayer(deltaTime) {
     // ---- 1. Looking around with the mouse ----
-    player.angle += takeMouseMovement() * player.turnSpeed;
+    const mouse = takeMouseMovement();
+
+    // Left/right: turn the player
+    player.angle += mouse.x * player.turnSpeed;
+
+    // Up/down: tilt the view. Moving the mouse UP gives a negative number,
+    // so we SUBTRACT it to make the pitch go up (look up).
+    player.pitch -= mouse.y * player.lookSpeed;
+
+    // Don't let the player look too far, or the view gets very stretched.
+    // Math.max / Math.min "clamp" the number between -maxPitch and +maxPitch.
+    player.pitch = Math.max(-player.maxPitch, Math.min(player.maxPitch, player.pitch));
 
     // ---- 2. Work out which way the keys want us to move ----
     // forward/back: +1 = forward, -1 = backward

@@ -18,12 +18,22 @@ const MAX_DEPTH = 20;           // give up on a ray after this many metres
 
 // Draw one complete frame of the 3D view
 function renderScene(ctx, screenWidth, screenHeight) {
+    // ---- 0. Where is the horizon? ----
+    // The horizon is the line where the floor meets the ceiling far away.
+    // Looking straight ahead it sits in the middle of the screen.
+    // To "look up" we slide it DOWN the screen (you see more ceiling),
+    // to "look down" we slide it UP (you see more floor).
+    // This old-school trick is called "y-shearing". It isn't true 3D
+    // tilting, but it looks convincing and keeps the maths simple.
+    const horizon = screenHeight / 2 + player.pitch;
+
     // ---- 1. Ceiling and floor ----
-    // Just two flat colours: top half and bottom half of the screen.
+    // Just two flat colours: everything above the horizon is ceiling,
+    // everything below is floor.
     ctx.fillStyle = "#383838";
-    ctx.fillRect(0, 0, screenWidth, screenHeight / 2);
+    ctx.fillRect(0, 0, screenWidth, horizon);
     ctx.fillStyle = "#5a4a3a";
-    ctx.fillRect(0, screenHeight / 2, screenWidth, screenHeight / 2);
+    ctx.fillRect(0, horizon, screenWidth, screenHeight - horizon);
 
     // ---- 2. Walls: one ray per column of pixels ----
     for (let column = 0; column < screenWidth; column++) {
@@ -47,7 +57,7 @@ function renderScene(ctx, screenWidth, screenHeight) {
         // Height is "1 divided by distance": twice as far = half as tall.
         // A wall 1 metre away fills the whole screen height.
         const wallHeight = screenHeight / distance;
-        const wallTop = (screenHeight - wallHeight) / 2; // centred vertically
+        const wallTop = horizon - wallHeight / 2; // centred on the horizon
 
         // --- What colour? ---
         const baseColour = WALL_COLOURS[hit.wallType] || [255, 0, 255];

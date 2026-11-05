@@ -8,6 +8,7 @@
 const input = {
     keys: {},        // e.g. keys["KeyW"] = true while W is held
     mouseMoveX: 0,   // how far the mouse moved sideways since last frame
+    mouseMoveY: 0,   // how far the mouse moved up/down since last frame
     showMap: true,   // is the minimap visible? (press M to toggle)
 };
 
@@ -39,15 +40,20 @@ function setupMouse(canvas) {
         // Only turn the view while the mouse is locked to the game
         if (document.pointerLockElement === canvas) {
             // movementX = how many pixels the mouse moved sideways
+            // movementY = how many pixels the mouse moved up/down
+            //             (positive = down, negative = up)
             input.mouseMoveX += event.movementX;
+            input.mouseMoveY += event.movementY;
         }
     });
 }
 
 // Called by the player once per frame: hands over the mouse movement
 // collected so far, then resets it to zero for the next frame.
+// It returns an object with two numbers, e.g. { x: 5, y: -2 }
 function takeMouseMovement() {
-    const amount = input.mouseMoveX;
+    const movement = { x: input.mouseMoveX, y: input.mouseMoveY };
     input.mouseMoveX = 0;
-    return amount;
+    input.mouseMoveY = 0;
+    return movement;
 }
