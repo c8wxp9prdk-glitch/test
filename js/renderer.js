@@ -36,6 +36,10 @@ function renderScene(ctx, screenWidth, screenHeight) {
     ctx.fillRect(0, horizon, screenWidth, screenHeight - horizon);
 
     // ---- 2. Walls: one ray per column of pixels ----
+    // When textures get stretched, keep them blocky and sharp instead
+    // of smudging them (blurry walls look wrong in a retro game).
+    ctx.imageSmoothingEnabled = false;
+
     for (let column = 0; column < screenWidth; column++) {
         // Where across the screen is this column? -0.5 = left edge, +0.5 = right edge
         const screenFraction = column / screenWidth - 0.5;
@@ -59,9 +63,25 @@ function renderScene(ctx, screenWidth, screenHeight) {
         const wallHeight = screenHeight / distance;
         const wallTop = horizon - wallHeight / 2; // centred on the horizon
 
-        // --- What colour? ---
-        const baseColour = WALL_COLOURS[hit.wallType] || [255, 0, 255];
+        // --- Which texture, and which strip of it? ---
+        // hit.wallX says how far along the wall face the ray landed
+        // (0 = one edge of the square, 0.99 = the other edge).
+        // Turn that into a column of the texture image: 0 to 63.
+        const texture = WALL_TEXTURES[hit.wallType] || WALL_TEXTURES[1];
+        const textureColumn = Math.floor(hit.wallX * TEXTURE_SIZE);
 
+        // --- Draw it ---
+        // Copy that 1-pixel-wide strip out of the texture and stretch it
+        // to the wall's height on screen. drawImage's arguments are:
+        //   (image, sourceX, sourceY, sourceWidth, sourceHeight,
+        //           screenX, screenY, screenWidth, screenHeight)
+        ctx.drawImage(
+            texture,
+            textureColumn, 0, 1, TEXTURE_SIZE,
+            column, wallTop, 1, wallHeight
+        );
+
+        // --- Shading ---
         // Make far-away walls darker (simple "fog") ...
         let brightness = 1 - distance / MAX_DEPTH;
         // ... and make north/south facing walls a bit darker than east/west
@@ -71,12 +91,10 @@ function renderScene(ctx, screenWidth, screenHeight) {
         }
         brightness = Math.max(0, brightness);
 
-        const r = Math.floor(baseColour[0] * brightness);
-        const g = Math.floor(baseColour[1] * brightness);
-        const b = Math.floor(baseColour[2] * brightness);
-        ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
-
-        // --- Draw it: a rectangle 1 pixel wide ---
+        // We can't easily darken the texture itself, so instead we lay a
+        // see-through black strip over the top. The darker the wall should
+        // be, the more solid the black.
+        ctx.fillStyle = "rgba(0, 0, 0, " + (1 - brightness) + ")";
         ctx.fillRect(column, wallTop, 1, wallHeight);
     }
 }
@@ -90,9 +108,11 @@ function renderScene(ctx, screenWidth, screenHeight) {
 //  past corners), we jump straight from one grid line to the next.
 //  We only ever need to check squares the ray actually passes through.
 //
-//  Returns { distance, wallType, side }
+//  Returns { distance, wallType, side, wallX }
 //      side = 0 if we hit a wall face pointing east/west
 //      side = 1 if we hit a wall face pointing north/south
+//      wallX = how far along the wall face we hit, from 0 to 1
+//              (used to pick which strip of the texture to draw)
 // -------------------------------------------------------------
 function castRay(startX, startY, angle) {
     // Direction the ray travels in
@@ -153,12 +173,31 @@ function castRay(startX, startY, angle) {
             // wall type safely (use 1 if we somehow left the map).
             const inside = mapX >= 0 && mapX < MAP_WIDTH && mapY >= 0 && mapY < MAP_HEIGHT;
             const wallType = inside ? MAP[mapY][mapX] : 1;
-            return { distance: distance, wallType: wallType, side: side };
+
+            // --- Where exactly on the wall did we hit? ---
+            // Work out the exact point the ray reached. If we hit an
+            // east/west face, the y coordinate tells us how far along the
+            // wall we are; on a north/south face it's the x coordinate.
+            let wallX;
+            if (side === 0) {
+                wallX = startY + distance * rayDirY;
+            } else {
+                wallX = startX + distance * rayDirX;
+            }
+            wallX -= Math.floor(wallX); // keep only the part after the decimal point
+
+            // Without this, textures on some wall faces would appear
+            // mirrored (back to front). Flip them so they all read the same way.
+            if ((side === 0 && rayDirX > 0) || (side === 1 && rayDirY < 0)) {
+                wallX = 1 - wallX;
+            }
+
+            return { distance: distance, wallType: wallType, side: side, wallX: wallX };
         }
     }
 
     // Didn't hit anything close enough
-    return { distance: MAX_DEPTH, wallType: 1, side: side };
+    return { distance: MAX_DEPTH, wallType: 1, side: side, wallX: 0 };
 }
 
 // -------------------------------------------------------------
