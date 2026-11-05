@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Raycaster</title>
+    <style>
+        /* Black page with the game screen centred in the middle */
+        body {
+            margin: 0;
+            background: #000;
+            color: #ccc;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        /* The canvas is drawn at a low resolution (old school!) and then
+           stretched up to a bigger size. "pixelated" keeps the pixels crisp
+           instead of blurry when stretched. */
+        canvas {
+            width: 960px;
+            height: 600px;
+            image-rendering: pixelated;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- This is the "screen" we draw the game onto -->
+    <canvas id="screen" width="320" height="200"></canvas>
+    <p>Click the screen to play. WASD = move, Mouse = look, Esc = release mouse, M = toggle map</p>
+
+    <!-- The order matters! Each file can use things defined in the files above it. -->
+    <script src="js/map.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
