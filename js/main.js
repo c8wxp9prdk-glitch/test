@@ -34,9 +34,12 @@ function gameLoop(currentTime) {
 
     // 1. UPDATE
     updatePlayer(deltaTime);
+    updateProjectiles(deltaTime);
 
     // 2. DRAW
     renderScene(ctx, SCREEN_WIDTH, SCREEN_HEIGHT);
+    renderProjectiles(ctx, SCREEN_WIDTH, SCREEN_HEIGHT);
+    renderCrosshair(ctx, SCREEN_WIDTH, SCREEN_HEIGHT);
     if (input.showMap) {
         renderMiniMap(ctx);
     }

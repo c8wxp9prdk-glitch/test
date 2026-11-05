@@ -10,6 +10,8 @@ const input = {
     mouseMoveX: 0,   // how far the mouse moved sideways since last frame
     mouseMoveY: 0,   // how far the mouse moved up/down since last frame
     showMap: true,   // is the minimap visible? (press M to toggle)
+    fireRequested: false, // set to true when the player clicks to shoot
+    fireHeld: false,      // true for as long as the mouse button is held down
 };
 
 // --- Keyboard ---
@@ -34,6 +36,36 @@ document.addEventListener("keyup", function (event) {
 function setupMouse(canvas) {
     canvas.addEventListener("click", function () {
         canvas.requestPointerLock();
+    });
+
+    // Pressing the mouse button shoots - but only once the mouse is
+    // locked to the game. That way the first click (the one that
+    // starts the game) doesn't fire a shot.
+    //
+    // We remember two things:
+    //   fireRequested - "a click happened", so even a very quick click
+    //                   (pressed and released between two frames) still fires
+    //   fireHeld      - "the button is down right now", for full-auto
+    document.addEventListener("mousedown", function (event) {
+        if (document.pointerLockElement === canvas && event.button === 0) {
+            input.fireRequested = true;
+            input.fireHeld = true;
+        }
+    });
+
+    document.addEventListener("mouseup", function (event) {
+        if (event.button === 0) {
+            input.fireHeld = false;
+        }
+    });
+
+    // If the mouse gets released from the game (e.g. pressing Esc)
+    // while the button is held, we might never see the "mouseup".
+    // So stop firing whenever the lock is lost.
+    document.addEventListener("pointerlockchange", function () {
+        if (document.pointerLockElement !== canvas) {
+            input.fireHeld = false;
+        }
     });
 
     document.addEventListener("mousemove", function (event) {

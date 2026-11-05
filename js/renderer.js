@@ -16,6 +16,13 @@
 const FOV = Math.PI / 3;        // field of view: 60 degrees, in radians
 const MAX_DEPTH = 20;           // give up on a ray after this many metres
 
+// How far away the wall is in each column of the screen.
+// Filled in while drawing walls, then used when drawing projectiles:
+// if a projectile is further away than the wall in that column, the
+// wall is in front of it, so we don't draw that bit.
+// (Game programmers call this a "depth buffer" or "z-buffer".)
+const wallDistances = [];
+
 // Draw one complete frame of the 3D view
 function renderScene(ctx, screenWidth, screenHeight) {
     // ---- 0. Where is the horizon? ----
@@ -56,6 +63,7 @@ function renderScene(ctx, screenWidth, screenHeight) {
         // look curved. Multiplying by cos(angle difference) gives the straight
         // ahead distance instead, which keeps walls flat.
         const distance = hit.distance * Math.cos(rayAngle - player.angle);
+        wallDistances[column] = distance; // remember it for drawing projectiles
 
         // --- How tall should the wall be on screen? ---
         // Height is "1 divided by distance": twice as far = half as tall.
@@ -201,6 +209,86 @@ function castRay(startX, startY, angle) {
 }
 
 // -------------------------------------------------------------
+//  Draw every projectile as a "sprite": a flat picture that always
+//  faces the player, scaled by distance just like the walls.
+//  Must be called AFTER renderScene, so wallDistances is filled in.
+// -------------------------------------------------------------
+function renderProjectiles(ctx, screenWidth, screenHeight) {
+    const horizon = screenHeight / 2 + player.pitch;
+
+    // Draw the furthest ones first, so nearer ones get painted on top.
+    // (sort() with this function puts the biggest distance first)
+    const sorted = projectiles.slice().sort(function (a, b) {
+        return distanceToPlayer(b) - distanceToPlayer(a);
+    });
+
+    for (const p of sorted) {
+        // --- Where is it compared to where we're looking? ---
+        const dx = p.x - player.x;
+        const dy = p.y - player.y;
+
+        // The angle from the player to the projectile, minus the way we
+        // face, gives how far left (negative) or right (positive) it is.
+        let angleToIt = Math.atan2(dy, dx) - player.angle;
+        // Keep the angle between -PI and +PI (otherwise turning around
+        // a few times would give silly answers like 7 radians)
+        while (angleToIt > Math.PI) angleToIt -= 2 * Math.PI;
+        while (angleToIt < -Math.PI) angleToIt += 2 * Math.PI;
+
+        // Behind us or way off to the side? Then it's not on screen.
+        if (Math.abs(angleToIt) > FOV) continue;
+
+        // Same "straight ahead" distance trick as the walls (no fisheye)
+        const distance = Math.sqrt(dx * dx + dy * dy) * Math.cos(angleToIt);
+        if (distance < 0.1) continue; // too close - would be enormous
+
+        // --- Where on screen, and how big? ---
+        // Turn the angle back into a screen column (the reverse of what
+        // renderScene does to turn a column into an angle).
+        const centreColumn = (angleToIt / FOV + 0.5) * screenWidth;
+
+        // A hit "splat" grows a little as it fades
+        const scale = p.state === "hit" ? PROJECTILE_SIZE * 1.6 : PROJECTILE_SIZE;
+        const size = (screenHeight / distance) * scale;
+        const top = horizon - size / 2;  // flying at eye height
+        const left = centreColumn - size / 2;
+
+        const image = p.state === "hit" ? HIT_IMAGE : PROJECTILE_IMAGE;
+
+        // --- Draw it one column at a time, hiding the bits behind walls ---
+        const firstColumn = Math.max(0, Math.floor(left));
+        const lastColumn = Math.min(screenWidth - 1, Math.floor(left + size));
+        for (let column = firstColumn; column <= lastColumn; column++) {
+            if (distance > wallDistances[column]) continue; // a wall is in front
+
+            // Which strip of the projectile picture goes in this column?
+            const imageColumn = Math.floor((column - left) / size * PROJECTILE_IMAGE_SIZE);
+            ctx.drawImage(
+                image,
+                imageColumn, 0, 1, PROJECTILE_IMAGE_SIZE,
+                column, top, 1, size
+            );
+        }
+    }
+}
+
+// Straight-line distance from the player to a projectile
+function distanceToPlayer(p) {
+    const dx = p.x - player.x;
+    const dy = p.y - player.y;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+// A small "+" in the middle of the screen so you can see where you're aiming
+function renderCrosshair(ctx, screenWidth, screenHeight) {
+    const cx = Math.floor(screenWidth / 2);
+    const cy = Math.floor(screenHeight / 2);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.fillRect(cx - 3, cy, 7, 1); // across
+    ctx.fillRect(cx, cy - 3, 1, 7); // down
+}
+
+// -------------------------------------------------------------
 //  A small top-down map in the corner. Not needed for the game,
 //  but really handy for seeing what the raycaster is doing.
 // -------------------------------------------------------------
@@ -220,6 +308,12 @@ function renderMiniMap(ctx) {
             }
             ctx.fillRect(offset + x * tileSize, offset + y * tileSize, tileSize, tileSize);
         }
+    }
+
+    // Projectiles as tiny dots (light blue while flying, orange on a hit)
+    for (const p of projectiles) {
+        ctx.fillStyle = p.state === "hit" ? "orange" : "#7cf";
+        ctx.fillRect(offset + p.x * tileSize - 0.5, offset + p.y * tileSize - 0.5, 1, 1);
     }
 
     // Player position on the minimap
