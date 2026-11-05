@@ -12,6 +12,7 @@ const input = {
     showMap: true,   // is the minimap visible? (press M to toggle)
     fireRequested: false, // set to true when the player clicks to shoot
     fireHeld: false,      // true for as long as the mouse button is held down
+    switchWeapon: 0,      // -1 = Q pressed (previous gun), +1 = E pressed (next gun)
 };
 
 // --- Keyboard ---
@@ -22,6 +23,16 @@ document.addEventListener("keydown", function (event) {
 
     if (event.code === "KeyM") {
         input.showMap = !input.showMap;
+    }
+
+    // Swap guns. "event.repeat" is true when a key is being held down and
+    // the computer starts auto-repeating it - we ignore those, so holding
+    // Q swaps once instead of spinning through every gun.
+    if (event.code === "KeyQ" && !event.repeat) {
+        input.switchWeapon = -1;
+    }
+    if (event.code === "KeyE" && !event.repeat) {
+        input.switchWeapon = 1;
     }
 });
 

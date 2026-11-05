@@ -34,12 +34,14 @@ function gameLoop(currentTime) {
 
     // 1. UPDATE
     updatePlayer(deltaTime);
-    updateProjectiles(deltaTime);
+    updateWeapons(deltaTime);      // swap guns, fire new bullets
+    updateProjectiles(deltaTime);  // move the bullets already flying
 
     // 2. DRAW
     renderScene(ctx, SCREEN_WIDTH, SCREEN_HEIGHT);
     renderProjectiles(ctx, SCREEN_WIDTH, SCREEN_HEIGHT);
     renderCrosshair(ctx, SCREEN_WIDTH, SCREEN_HEIGHT);
+    renderWeaponHud(ctx, SCREEN_WIDTH, SCREEN_HEIGHT);
     if (input.showMap) {
         renderMiniMap(ctx);
     }

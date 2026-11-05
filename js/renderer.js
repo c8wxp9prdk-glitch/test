@@ -248,12 +248,12 @@ function renderProjectiles(ctx, screenWidth, screenHeight) {
         const centreColumn = (angleToIt / FOV + 0.5) * screenWidth;
 
         // A hit "splat" grows a little as it fades
-        const scale = p.state === "hit" ? PROJECTILE_SIZE * 1.6 : PROJECTILE_SIZE;
+        const scale = p.state === "hit" ? p.size * 1.6 : p.size;
         const size = (screenHeight / distance) * scale;
         const top = horizon - size / 2;  // flying at eye height
         const left = centreColumn - size / 2;
 
-        const image = p.state === "hit" ? HIT_IMAGE : PROJECTILE_IMAGE;
+        const image = p.state === "hit" ? HIT_IMAGE : p.image;
 
         // --- Draw it one column at a time, hiding the bits behind walls ---
         const firstColumn = Math.max(0, Math.floor(left));

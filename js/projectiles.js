@@ -1,51 +1,60 @@
 // =============================================================
 //  PROJECTILES
-//  Things the player shoots. Each one flies in a straight line
-//  across the map until it hits a wall, then gives a quick
-//  flash ("splat") and disappears.
+//  Bullets in flight. Each one flies in a straight line across
+//  the map until it hits a wall (then gives a quick flash) or
+//  runs out of range (then it simply disappears).
 //
-//  A projectile is just a small object:
-//      { x, y, dirX, dirY, state, timer }
-//  x, y       = where it is on the map
-//  dirX, dirY = which way it is flying (an arrow of length 1)
-//  state      = "flying" or "hit"
-//  timer      = how long the "hit" flash has left (seconds)
+//  Which gun fires them, and when, lives in weapons.js.
+//  This file just moves them and holds their pictures.
+//
+//  A projectile is a small object:
+//      x, y        = where it is on the map
+//      dirX, dirY  = which way it is flying (an arrow of length 1)
+//      damage      = how much it hurts whatever it hits
+//      speed       = metres per second
+//      range       = how far it can fly before vanishing (metres)
+//      travelled   = how far it has flown so far (metres)
+//      size        = how big it looks (1 = a whole wall tall)
+//      image       = the picture drawn for it while flying
+//      state       = "flying" or "hit"
+//      timer       = how long the "hit" flash has left (seconds)
 // =============================================================
 
-const PROJECTILE_SPEED = 10;      // metres per second
-const PROJECTILE_SIZE = 0.25;     // how big it looks (1 = a whole wall tall)
 const HIT_FLASH_TIME = 0.15;      // how long the flash lasts after a hit (seconds)
-const FIRE_COOLDOWN = 0.1;        // gap between shots (seconds) - 0.1 = 10 shots a second
-                                  // when the mouse button is held down
 
 // Every projectile currently in the world
 const projectiles = [];
 
-// Counts down after each shot. You can fire again when it reaches 0.
-let fireCooldownLeft = 0;
+// -------------------------------------------------------------
+//  Create a new projectile at the player, flying at "angle".
+//  "settings" says how fast, how far and how big (see the
+//  weapon list in weapons.js).
+// -------------------------------------------------------------
+function spawnProjectile(angle, settings) {
+    const dirX = Math.cos(angle);
+    const dirY = Math.sin(angle);
+
+    projectiles.push({
+        // Start a little in front of the player, not inside their head
+        x: player.x + dirX * 0.3,
+        y: player.y + dirY * 0.3,
+        dirX: dirX,
+        dirY: dirY,
+        damage: settings.damage,
+        speed: settings.speed,
+        range: settings.range,
+        travelled: 0,
+        size: settings.size,
+        image: settings.image,
+        state: "flying",
+        timer: 0,
+    });
+}
 
 // -------------------------------------------------------------
-//  Called once per frame by the game loop.
+//  Called once per frame by the game loop: moves every projectile.
 // -------------------------------------------------------------
 function updateProjectiles(deltaTime) {
-    // ---- 1. Fire a new projectile if the player clicked or is holding ----
-    // Holding the button down keeps firing, one shot every FIRE_COOLDOWN
-    // seconds ("full automatic").
-    fireCooldownLeft -= deltaTime;
-    const wantsToFire = input.fireRequested || input.fireHeld;
-    if (wantsToFire && fireCooldownLeft <= 0) {
-        fireProjectile();
-        // ADD the cooldown rather than setting it. Frames don't line up
-        // exactly with the cooldown, so we're usually a little past zero
-        // by now - carrying that bit over makes the next shot come a
-        // little sooner, which keeps the fire rate steady.
-        // (We carry over at most one frame's worth, otherwise after a
-        //  long pause between shots the next few would all fire at once.)
-        fireCooldownLeft = Math.max(fireCooldownLeft, -deltaTime) + FIRE_COOLDOWN;
-    }
-    input.fireRequested = false; // we've dealt with this click
-
-    // ---- 2. Move every projectile ----
     // We loop BACKWARDS so we can safely remove items as we go.
     // (Removing an item shifts everything after it down by one,
     //  which would make a forwards loop skip the next projectile.)
@@ -62,15 +71,15 @@ function updateProjectiles(deltaTime) {
         }
 
         // How far it travels this frame
-        const distance = PROJECTILE_SPEED * deltaTime;
+        const distance = p.speed * deltaTime;
 
         // Move in small steps, checking for a wall after each one.
         // If we moved the whole distance in one jump, a fast projectile
         // could jump right over a thin corner without ever "touching" it.
         const smallStep = 0.05;
-        let travelled = 0;
-        while (travelled < distance) {
-            const step = Math.min(smallStep, distance - travelled);
+        let movedThisFrame = 0;
+        while (movedThisFrame < distance) {
+            const step = Math.min(smallStep, distance - movedThisFrame);
             const nextX = p.x + p.dirX * step;
             const nextY = p.y + p.dirY * step;
 
@@ -83,32 +92,21 @@ function updateProjectiles(deltaTime) {
 
             p.x = nextX;
             p.y = nextY;
-            travelled += step;
+            movedThisFrame += step;
+        }
+
+        // Flown too far without hitting anything? It's gone.
+        p.travelled += movedThisFrame;
+        if (p.state === "flying" && p.travelled >= p.range) {
+            projectiles.splice(i, 1);
         }
     }
 }
 
-// Create a new projectile at the player, heading the way they face
-function fireProjectile() {
-    const dirX = Math.cos(player.angle);
-    const dirY = Math.sin(player.angle);
-
-    projectiles.push({
-        // Start a little in front of the player, not inside their head
-        x: player.x + dirX * 0.3,
-        y: player.y + dirY * 0.3,
-        dirX: dirX,
-        dirY: dirY,
-        state: "flying",
-        timer: 0,
-    });
-}
-
 // -------------------------------------------------------------
-//  Pictures for the projectile, made once when the page loads.
-//  A glowing ball: bright white in the middle fading out to
-//  see-through at the edges. The "hit" picture is the same
-//  idea in orange, for the splat when it hits a wall.
+//  Pictures for projectiles, made once when the page loads.
+//  Each is a glowing ball: bright white in the middle fading out
+//  to see-through at the edges.
 // -------------------------------------------------------------
 const PROJECTILE_IMAGE_SIZE = 32;
 
@@ -130,5 +128,6 @@ function makeGlowImage(innerColour, outerColour) {
     return glowCanvas;
 }
 
-const PROJECTILE_IMAGE = makeGlowImage("rgb(120, 220, 255)", "rgba(0, 120, 255, 0)");
-const HIT_IMAGE = makeGlowImage("rgb(255, 180, 60)", "rgba(255, 60, 0, 0)");
+const SMG_BULLET_IMAGE = makeGlowImage("rgb(120, 220, 255)", "rgba(0, 120, 255, 0)");    // blue
+const SHOTGUN_PELLET_IMAGE = makeGlowImage("rgb(255, 240, 120)", "rgba(255, 200, 0, 0)"); // yellow
+const HIT_IMAGE = makeGlowImage("rgb(255, 180, 60)", "rgba(255, 60, 0, 0)");              // orange splat
